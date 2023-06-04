@@ -4,6 +4,7 @@ import torch
 
 from baseline import train_baseline
 from baseline.predict import predict_baseline
+from l2sp.train import train_l2sp
 
 
 def main(args: Namespace) -> None:
@@ -23,13 +24,23 @@ def main(args: Namespace) -> None:
                         batch_size=args.batch_size,
                     )
 
+                case 'l2sp':
+                    train_l2sp(
+                        features_csv=args.train_data_csv,
+                        labels_csv=args.train_labels_csv,
+                        images_dir=args.train_images_dir,
+                        model_dir=args.model_path,
+                        epochs=args.num_epochs,
+                        batch_size=args.batch_size,
+                    )
+
         case 'predict':
             assert hasattr(args, 'test_data_csv')
             assert hasattr(args, 'test_images_dir')
             assert hasattr(args, 'prediction_path')
             assert hasattr(args, 'model_path')
             match args.solution:
-                case 'baseline':
+                case 'baseline' | 'l2sp':
                     predict_baseline(
                         model_path=args.model_path,
                         features_csv=args.test_data_csv,
@@ -43,7 +54,7 @@ def main(args: Namespace) -> None:
 if __name__ == '__main__':
     argument_parser = ArgumentParser()
     argument_parser.add_argument('--mode', choices=['train', 'predict'], required=True)
-    argument_parser.add_argument('--solution', choices=['baseline'], required=True)
+    argument_parser.add_argument('--solution', choices=['baseline', 'l2sp'], required=True)
 
     argument_parser.add_argument('--train-data-csv', type=str)
     argument_parser.add_argument('--train-labels-csv', type=str)

@@ -4,59 +4,71 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-from mixins.baseline import BasicEvalStepMixin, HasBasicTrainAttributes
+from mixins.baseline import BasicEvalStepMixin
 
 
 @dataclass
 class TrainerArgs:
     epochs: int
     batch_size: int
-    output_dir: str
+    model_dir: str
 
 
-class HasL2SPTrainAttributes(Protocol):
+def l2_norm_with_starting_point(w: Mapping[str, torch.Tensor], w_sp: Mapping[str, torch.Tensor],
+                                device: torch.device) -> torch.Tensor:
+    """This function computes the l2 norm of w by considering w_sp as an origin.
+    ||w - w_sp||^2_2"""
+    param_names = set(w.keys()).intersection(w_sp.keys())
+    result = torch.tensor(0.0, dtype=torch.float, device=device)
+    for param in param_names:
+        result += ((w[param] - w_sp[param]) ** 2).sum()
 
-    @property
-    def model(self) -> torch.nn.Module: return ...
-    @property
-    def criterion(self) -> torch.nn.Module: return ...
-    @property
-    def optimizer(self) -> torch.optim.Optimizer: return ...
-    @property
-    def device(self) -> torch.device: return ...
-    @property
-    def pretrained_model(self) -> torch.nn.Module: return ...
+    return result
 
 
-def l2sp_regularize(model: torch.nn.Module, pretrained_model: torch.nn.Module):
-    ...
+def l2sp_train_step(
+        model: torch.nn.Module,
+        criterion: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        dataloader: DataLoader[Mapping[str, torch.Tensor]],
+        pretrained_model: torch.nn.Module,
+        l2sp_lambda: float,
+        device: torch.device = torch.device('cpu'),
+) -> float:
+    model.train(True)
+    running_loss = 0.0
+    pretrained_params = {
+        name: param
+        for name, param in pretrained_model.named_parameters()
+        if name.split('.')[0] != 'fc' and name.split('.')[-1] != 'bias' and param.requires_grad
+    }
+    for batch in tqdm(dataloader, desc="training"):
+        x = batch['image'].to(device)
+        y = batch['label'].to(device)
 
+        a = model(x)
+        transfer_params = {
+            name: param
+            for name, param in model.named_parameters()
+            if name.split('.')[0] != 'fc' and name.split('.')[-1] != 'bias' and param.requires_grad
+        }
+        l2_sp = l2_norm_with_starting_point(transfer_params, pretrained_params, device)
+        loss = criterion(a, y) + l2sp_lambda * l2_sp
 
-class L2SPTrainStepMixin:
+        with torch.no_grad():
+            running_loss += loss.item()
 
-    def train_step(self: HasBasicTrainAttributes, dataloader: DataLoader[Mapping[str, torch.Tensor]]) -> float:
-        self.model.train(True)
-        running_loss = 0.0
-        for batch in tqdm(dataloader, desc="training"):
-            x = batch['image'].to(self.device)
-            y = batch['label'].to(self.device)
-
-            a = self.model(x)
-            loss = self.criterion(a, y)
-
-            with torch.no_grad():
-                running_loss += loss.item()
-
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
-        return running_loss / len(dataloader)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+    return running_loss / len(dataloader)
 
 
 @dataclass
-class L2SPTrainer(L2SPTrainStepMixin, BasicEvalStepMixin):
+class L2SPTrainer(BasicEvalStepMixin):
     model: torch.nn.Module
-    pretrained_weights: torch.nn.Module
+    pretrained_model: torch.nn.Module
+    l2sp_lambda: float
     optimizer: torch.optim.Optimizer
     criterion: torch.nn.CrossEntropyLoss
     device: torch.device
@@ -65,12 +77,24 @@ class L2SPTrainer(L2SPTrainStepMixin, BasicEvalStepMixin):
         train_dataloader = DataLoader(train_dataset, batch_size=train_args.batch_size)
         eval_dataloader = DataLoader(eval_dataset, batch_size=train_args.batch_size)
         self.model.to(device=self.device)
+        self.pretrained_model.to(device=self.device)
+
+        for name, param in self.pretrained_model.named_parameters():
+            param.requires_grad = False
 
         for epoch in range(train_args.epochs):
-            print(f"Epoch [{epoch+1}/{train_args.epochs}]")
-            train_loss = self.train_step(train_dataloader)
+            print(f"Epoch [{epoch + 1}/{train_args.epochs}]")
+            train_loss = l2sp_train_step(
+                model=self.model,
+                criterion=self.criterion,
+                optimizer=self.optimizer,
+                dataloader=train_dataloader,
+                pretrained_model=self.pretrained_model,
+                device=self.device,
+                l2sp_lambda=l2sp_lambda
+            )
             print(train_loss)
             eval_loss = self.eval_step(eval_dataloader)
             print(eval_loss)
 
-        torch.save(self.model, train_args.output_dir)
+        torch.save(self.model, train_args.model_dir)

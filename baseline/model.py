@@ -3,7 +3,7 @@ from torchvision import models
 
 
 def get_baseline_model() -> torch.nn.Module:
-    model = models.resnet152(weights=models.ResNet152_Weights.DEFAULT)
+    model = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
     model.fc = torch.nn.Sequential(  # type: ignore
         torch.nn.Linear(2048, 100),  # dense layer takes a 2048-dim input and outputs 100-dim
         torch.nn.ReLU(inplace=True),  # ReLU activation introduces non-linearity
