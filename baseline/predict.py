@@ -75,7 +75,7 @@ def predict_baseline2(
     dataloader = DataLoader(dataset, batch_size=batch_size)
     predictions = BaselinePredictor(model, device).prediction_step(dataloader)
     dataframe = pd.DataFrame(
-        predictions['image'],
+        predictions['probabilities'],
         index=predictions['image_id'],
         columns=['antelope_duiker',
                  'bird',
@@ -85,7 +85,6 @@ def predict_baseline2(
                  'leopard',
                  'monkey_prosimian',
                  'rodent'
-        ],
+                 ],
     )
     dataframe.to_csv(prediction_path)
-

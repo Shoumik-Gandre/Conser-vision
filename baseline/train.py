@@ -8,11 +8,18 @@ from baseline.model import get_baseline_model
 import torch
 
 
-def train_baseline(train_features_csv: str, train_labels_csv: str, train_images_dir: str, output_dir: str) -> None:
-    train_features = pd.read_csv(train_features_csv, index_col="id")
+def train_baseline(
+        features_csv: str,
+        labels_csv: str,
+        images_dir: str,
+        model_dir: str,
+        epochs: int,
+        batch_size: int,
+) -> None:
+    train_features = pd.read_csv(features_csv, index_col="id")
     train_features['filepath'] = train_features['filepath'].apply(
-        lambda path: pathlib.Path(train_images_dir) / str(path))
-    train_labels = pd.read_csv(train_labels_csv, index_col="id")
+        lambda path: pathlib.Path(images_dir) / str(path))
+    train_labels = pd.read_csv(labels_csv, index_col="id")
 
     y = train_labels
     x = train_features.loc[y.index].filepath.to_frame()
@@ -24,7 +31,7 @@ def train_baseline(train_features_csv: str, train_labels_csv: str, train_images_
 
     train_dataset = ImagesDataset(x_train, y_train)
     eval_dataset = ImagesDataset(x_eval, y_eval)
-    training_args = TrainerArgs(epochs=2, batch_size=32, output_dir=output_dir)
+    training_args = TrainerArgs(epochs=epochs, batch_size=batch_size, output_dir=model_dir)
     model = get_baseline_model()
     trainer = BaselineTrainer(
         model=model,
@@ -32,7 +39,7 @@ def train_baseline(train_features_csv: str, train_labels_csv: str, train_images_
             [
                 {
                     'params': [param for name, param in model.named_parameters() if name.split('.')[0] != 'fc'],
-                    'lr': 1e-4
+                    'lr': 1e-4,
                 },
                 {
                     'params': [param for name, param in model.named_parameters() if name.split('.')[0] == 'fc'],

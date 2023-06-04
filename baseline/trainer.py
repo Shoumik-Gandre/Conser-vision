@@ -22,15 +22,15 @@ class BaselineTrainer(BasicTrainStepMixin, BasicEvalStepMixin):
     device: torch.device
 
     def train(self, train_args: TrainerArgs, train_dataset: Dataset, eval_dataset: Dataset):
-        train_dataloader = DataLoader(train_dataset, batch_size=train_args.batch_size)
+        train_dataloader = DataLoader(train_dataset, batch_size=train_args.batch_size, shuffle=True)
         eval_dataloader = DataLoader(eval_dataset, batch_size=train_args.batch_size)
         self.model.to(device=self.device)
 
         for epoch in range(train_args.epochs):
             print(f"Epoch [{epoch+1}/{train_args.epochs}]")
             train_loss = self.train_step(train_dataloader)
-            print(train_loss)
+            print(f"training loss   = {train_loss:.4f}")
             eval_loss = self.eval_step(eval_dataloader)
-            print(eval_loss)
+            print(f"validation loss = {eval_loss:.4f}")
 
         torch.save(self.model, train_args.output_dir)
