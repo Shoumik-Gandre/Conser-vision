@@ -91,7 +91,7 @@ class L2SPTrainer(BasicEvalStepMixin):
                 dataloader=train_dataloader,
                 pretrained_model=self.pretrained_model,
                 device=self.device,
-                l2sp_lambda=l2sp_lambda
+                l2sp_lambda=self.l2sp_lambda
             )
             print(train_loss)
             eval_loss = self.eval_step(eval_dataloader)
