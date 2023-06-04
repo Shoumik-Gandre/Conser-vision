@@ -40,12 +40,12 @@ def train_l2sp(
             [
                 {
                     'params': [param for name, param in model.named_parameters() if name.split('.')[0] != 'fc'],
-                    'lr': 1e-3,
+                    'lr': 1e-5,
                 },
                 {
                     'params': [param for name, param in model.named_parameters() if name.split('.')[0] == 'fc'],
                     'lr': 1e-3,
-                    'weight_decay': 1e-2,
+                    'weight_decay': 1e-3,
                 },
             ],
         ),

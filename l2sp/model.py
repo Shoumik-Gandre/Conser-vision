@@ -8,7 +8,7 @@ def get_l2sp_model() -> torch.nn.Module:
         torch.nn.Linear(2048, 100),  # dense layer takes a 2048-dim input and outputs 100-dim
         # torch.nn.BatchNorm1d(100),
         torch.nn.ReLU(inplace=True),  # ReLU activation introduces non-linearity
-        torch.nn.Dropout(0.1),  # common technique to mitigate overfitting
+        torch.nn.Dropout(0.33),  # common technique to mitigate overfitting
         torch.nn.Linear(100, 8),  # final dense layer outputs 8-dim corresponding to our target classes
     )
     return model

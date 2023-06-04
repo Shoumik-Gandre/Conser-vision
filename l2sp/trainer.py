@@ -30,18 +30,19 @@ class LSquareStartingPointRegularization(torch.nn.Module):
     """This is the L^2-SP regularization from the paper
     Explicit Inductive Bias for Transfer Learning with Convolutional Networks"""
 
-    def __init__(self, pretrained_model: torch.nn.Module, param_names: Iterable[str], device: torch.device):
+    def __init__(self, pretrained_model: torch.nn.Module, param_names: Iterable[str], coefficient: float, device: torch.device):
         super().__init__()
         self.pretrained_model = pretrained_model
         self.param_names = param_names
         self.device = device
+        self.coefficient = coefficient
 
     def forward(self, model: torch.nn.Module) -> torch.Tensor:
         result = torch.tensor(0.0, dtype=torch.float, device=self.device)
         for param in self.param_names:
             result += ((model.state_dict()[param] - self.pretrained_model.state_dict()[param]) ** 2).sum()
 
-        return result
+        return self.coefficient * result
 
 
 def l2sp_train_step(
