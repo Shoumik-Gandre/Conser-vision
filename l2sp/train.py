@@ -52,6 +52,5 @@ def train_l2sp(
         criterion=torch.nn.CrossEntropyLoss(),
         device=device,
         pretrained_model=torchvision.models.resnet50(weights=torchvision.models.ResNet50_Weights.DEFAULT),
-        l2sp_lambda=1e-2,
     )
     trainer.train(train_args=training_args, train_dataset=train_dataset, eval_dataset=eval_dataset)

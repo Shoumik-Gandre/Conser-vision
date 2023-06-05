@@ -26,11 +26,20 @@ def l2_norm_with_starting_point(w: Mapping[str, torch.Tensor], w_sp: Mapping[str
     return result
 
 
+@dataclass
+class LSquareStartingPointHyperparameters:
+    pretrain_coefficient: float
+    param_names: Iterable[str]
+
+
 class LSquareStartingPointRegularization(torch.nn.Module):
     """This is the L^2-SP regularization from the paper
     Explicit Inductive Bias for Transfer Learning with Convolutional Networks"""
 
-    def __init__(self, pretrained_model: torch.nn.Module, param_names: Iterable[str], coefficient: float, device: torch.device):
+    def __init__(self,
+                 pretrained_model: torch.nn.Module,
+                 param_names: Iterable[str],
+                 coefficient: float, device: torch.device):
         super().__init__()
         self.pretrained_model = pretrained_model
         self.param_names = param_names
@@ -45,7 +54,7 @@ class LSquareStartingPointRegularization(torch.nn.Module):
         return self.coefficient * result
 
 
-def l2sp_train_step(
+def l2sp_train_step_(
         model: torch.nn.Module,
         criterion: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
@@ -72,10 +81,40 @@ def l2sp_train_step(
             if name.split('.')[0] != 'fc' and name.split('.')[-1] != 'bias' and param.requires_grad
         }
         l2_sp = l2_norm_with_starting_point(transfer_params, pretrained_params, device)
-        loss = criterion(a, y) + l2sp_lambda * l2_sp
+        loss = criterion(a, y)
 
         with torch.no_grad():
             running_loss += loss.item()
+
+        loss += l2sp_lambda * l2_sp
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+    return running_loss / len(dataloader)
+
+
+def l2sp_train_step(
+        model: torch.nn.Module,
+        criterion: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        dataloader: DataLoader[Mapping[str, torch.Tensor]],
+        sp_regularize: LSquareStartingPointRegularization,
+        device: torch.device = torch.device('cpu'),
+) -> float:
+    model.train(True)
+    running_loss = 0.0
+    for batch in tqdm(dataloader, desc="training"):
+        x = batch['image'].to(device)
+        y = batch['label'].to(device)
+
+        a = model(x)
+        loss = criterion(a, y)
+
+        with torch.no_grad():
+            running_loss += loss.item()
+
+        loss += sp_regularize(model)
 
         optimizer.zero_grad()
         loss.backward()
@@ -87,7 +126,6 @@ def l2sp_train_step(
 class L2SPTrainer(BasicEvalStepMixin):
     model: torch.nn.Module
     pretrained_model: torch.nn.Module
-    l2sp_lambda: float
     optimizer: torch.optim.Optimizer
     criterion: torch.nn.CrossEntropyLoss
     device: torch.device
@@ -108,9 +146,17 @@ class L2SPTrainer(BasicEvalStepMixin):
                 criterion=self.criterion,
                 optimizer=self.optimizer,
                 dataloader=train_dataloader,
-                pretrained_model=self.pretrained_model,
+                sp_regularize=LSquareStartingPointRegularization(
+                    pretrained_model=self.pretrained_model,
+                    param_names=[
+                        name
+                        for name, param in self.pretrained_model.named_parameters()
+                        if name.split('.')[0] != 'fc' and name.split('.')[-1] != 'bias' and param.requires_grad
+                    ],
+                    coefficient=1e-2,
+                    device=self.device
+                ),
                 device=self.device,
-                l2sp_lambda=self.l2sp_lambda
             )
             print(train_loss)
             eval_loss = self.eval_step(eval_dataloader)
