@@ -34,23 +34,24 @@ def train_l2sp(
     eval_dataset = ImagesDataset(x_eval, y_eval)
     training_args = TrainerArgs(epochs=epochs, batch_size=batch_size, model_dir=model_dir)
     model = get_l2sp_model()
+    pretrained_model = torchvision.models.resnet50(weights=torchvision.models.ResNet50_Weights.DEFAULT)
     trainer = L2SPTrainer(
         model=model,
-        optimizer=torch.optim.Adam(
+        optimizer=torch.optim.SGD(
             [
                 {
                     'params': [param for name, param in model.named_parameters() if name.split('.')[0] != 'fc'],
-                    'lr': 1e-5,
                 },
                 {
                     'params': [param for name, param in model.named_parameters() if name.split('.')[0] == 'fc'],
-                    'lr': 1e-3,
                     'weight_decay': 1e-3,
                 },
             ],
+            lr=1e-2,
+            momentum=0.9
         ),
         criterion=torch.nn.CrossEntropyLoss(),
         device=device,
-        pretrained_model=torchvision.models.resnet50(weights=torchvision.models.ResNet50_Weights.DEFAULT),
+        pretrained_model=pretrained_model,
     )
     trainer.train(train_args=training_args, train_dataset=train_dataset, eval_dataset=eval_dataset)
