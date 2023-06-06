@@ -33,6 +33,11 @@ def train_baseline(
     eval_dataset = ImagesDataset(x_eval, y_eval)
     training_args = TrainerArgs(epochs=epochs, batch_size=batch_size, output_dir=model_dir)
     model = get_baseline_model()
+
+    for name, param in model.named_parameters():
+        if name.split('.')[0] != 'fc':
+            param.requires_grad = False
+
     trainer = BaselineTrainer(
         model=model,
         optimizer=torch.optim.AdamW(
@@ -42,12 +47,15 @@ def train_baseline(
                 #     'lr': 1e-4,
                 # },
                 {
-                    'params': [param for name, param in model.named_parameters() if name.split('.')[0] == 'fc'],
-                    'lr': 1e-3,
+                    'params': [
+                        param for name, param in model.named_parameters()
+                        if name.split('.')[0] == 'fc' and param.requires_grad
+                    ],
+                    # 'lr': 1e-3,
                 },
             ],
-            lr=1e-3,
-            # weight_decay=1e-2
+            # lr=1e-3,
+            weight_decay=1e-3
         ),
         criterion=torch.nn.CrossEntropyLoss(),
         device=device
