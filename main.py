@@ -1,13 +1,24 @@
 from argparse import ArgumentParser, Namespace
 
+import numpy as np
 import torch
 
 from baseline import train_baseline
 from baseline.predict import predict_baseline
 from l2sp.train import train_l2sp
+from torch.backends import cudnn
+
+
+def set_seeds(seed):
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
 
 
 def main(args: Namespace) -> None:
+    set_seeds(42)
     match args.mode:
         case 'train':
             assert hasattr(args, 'train_data_csv')

@@ -32,24 +32,42 @@ class LSquareStartingPointHyperparameters:
     param_names: Iterable[str]
 
 
+# class LSquareStartingPointRegularization(torch.nn.Module):
+#     """This is the L^2-SP regularization from the paper
+#     Explicit Inductive Bias for Transfer Learning with Convolutional Networks"""
+#
+#     def __init__(self,
+#                  pretrained_model: torch.nn.Module,
+#                  param_names: Iterable[str],
+#                  coefficient: float, device: torch.device):
+#         super().__init__()
+#         self.pretrained_model = pretrained_model
+#         self.param_names = param_names
+#         self.device = device
+#         self.coefficient = coefficient
+#
+#     def forward(self, model: torch.nn.Module) -> torch.Tensor:
+#         result = torch.tensor(0.0, dtype=torch.float, device=self.device)
+#         for param in self.param_names:
+#             result += ((model.state_dict()[param] - self.pretrained_model.state_dict()[param]) ** 2).sum()
+#
+#         return self.coefficient * result
+
+
 class LSquareStartingPointRegularization(torch.nn.Module):
     """This is the L^2-SP regularization from the paper
     Explicit Inductive Bias for Transfer Learning with Convolutional Networks"""
 
-    def __init__(self,
-                 pretrained_model: torch.nn.Module,
-                 param_names: Iterable[str],
-                 coefficient: float, device: torch.device):
+    def __init__(self, starting_parameters: Mapping[str, torch.nn.Module], coefficient: float, device: torch.device):
         super().__init__()
-        self.pretrained_model = pretrained_model
-        self.param_names = param_names
+        self.starting_parameters = starting_parameters
         self.device = device
         self.coefficient = coefficient
 
     def forward(self, model: torch.nn.Module) -> torch.Tensor:
         result = torch.tensor(0.0, dtype=torch.float, device=self.device)
-        for param in self.param_names:
-            result += ((model.state_dict()[param] - self.pretrained_model.state_dict()[param]) ** 2).sum()
+        for param_name, param in self.starting_parameters.items():
+            result += torch.norm(model.state_dict()[param_name] - param)
 
         return self.coefficient * result
 
@@ -147,12 +165,11 @@ class L2SPTrainer(BasicEvalStepMixin):
                 optimizer=self.optimizer,
                 dataloader=train_dataloader,
                 sp_regularize=LSquareStartingPointRegularization(
-                    pretrained_model=self.pretrained_model,
-                    param_names=[
-                        name
+                    starting_parameters={
+                        name: param
                         for name, param in self.pretrained_model.named_parameters()
-                        if name.split('.')[0] != 'fc' and name.split('.')[-1] != 'bias' and param.requires_grad
-                    ],
+                        if name.split('.')[0] != 'fc' and name.split('.')[-1] != 'bias'
+                    },
                     coefficient=1e-2,
                     device=self.device
                 ),
