@@ -117,7 +117,7 @@ def l2sp_train_step(
         criterion: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
         dataloader: DataLoader[Mapping[str, torch.Tensor]],
-        sp_regularize: LSquareStartingPointRegularization,
+        sp_regularizer: LSquareStartingPointRegularization,
         device: torch.device = torch.device('cpu'),
 ) -> float:
     model.train(True)
@@ -132,7 +132,7 @@ def l2sp_train_step(
         with torch.no_grad():
             running_loss += loss.item()
 
-        loss += sp_regularize(model)
+        loss += sp_regularizer(model)
 
         optimizer.zero_grad()
         loss.backward()
@@ -143,7 +143,7 @@ def l2sp_train_step(
 @dataclass
 class L2SPTrainer(BasicEvalStepMixin):
     model: torch.nn.Module
-    pretrained_model: torch.nn.Module
+    sp_regularizer: LSquareStartingPointRegularization
     optimizer: torch.optim.Optimizer
     criterion: torch.nn.CrossEntropyLoss
     device: torch.device
@@ -152,10 +152,25 @@ class L2SPTrainer(BasicEvalStepMixin):
         train_dataloader = DataLoader(train_dataset, batch_size=train_args.batch_size)
         eval_dataloader = DataLoader(eval_dataset, batch_size=train_args.batch_size)
         self.model.to(device=self.device)
-        self.pretrained_model.to(device=self.device)
+        # self.pretrained_model.to(device=self.device)
 
-        for name, param in self.pretrained_model.named_parameters():
-            param.requires_grad = False
+        # def requires_grad_false(param: torch.nn.Parameter) -> torch.nn.Parameter:
+        #     param.requires_grad = False
+        #     return param
+        #
+        # starting_params = {
+        #     name: requires_grad_false(param)
+        #     for name, param in self.pretrained_model.named_parameters()
+        #     if (
+        #             name.split('.')[0] != 'fc'  # It should not be a classifier
+        #             and name.split('.')[-1] != 'bias'  # It should not be a bias
+        #             and param.requires_grad  # It should be updatable
+        #     )
+        # }
+        #
+        # sp_regularize = LSquareStartingPointRegularization(
+        #     starting_parameters=starting_params,
+        #     coefficient=1e-2, device=self.device)
 
         for epoch in range(train_args.epochs):
             print(f"Epoch [{epoch + 1}/{train_args.epochs}]")
@@ -164,15 +179,7 @@ class L2SPTrainer(BasicEvalStepMixin):
                 criterion=self.criterion,
                 optimizer=self.optimizer,
                 dataloader=train_dataloader,
-                sp_regularize=LSquareStartingPointRegularization(
-                    starting_parameters={
-                        name: param
-                        for name, param in self.pretrained_model.named_parameters()
-                        if name.split('.')[0] != 'fc' and name.split('.')[-1] != 'bias'
-                    },
-                    coefficient=1e-2,
-                    device=self.device
-                ),
+                sp_regularizer=self.sp_regularizer,
                 device=self.device,
             )
             print(train_loss)

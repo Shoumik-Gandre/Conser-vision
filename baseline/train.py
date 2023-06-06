@@ -35,19 +35,19 @@ def train_baseline(
     model = get_baseline_model()
     trainer = BaselineTrainer(
         model=model,
-        optimizer=torch.optim.Adam(
+        optimizer=torch.optim.AdamW(
             [
-                {
-                    'params': [param for name, param in model.named_parameters() if name.split('.')[0] != 'fc'],
-                    'lr': 1e-4,
-                },
+                # {
+                #     'params': [param for name, param in model.named_parameters() if name.split('.')[0] != 'fc'],
+                #     'lr': 1e-4,
+                # },
                 {
                     'params': [param for name, param in model.named_parameters() if name.split('.')[0] == 'fc'],
                     'lr': 1e-3,
                 },
             ],
             lr=1e-3,
-            weight_decay=1e-2
+            # weight_decay=1e-2
         ),
         criterion=torch.nn.CrossEntropyLoss(),
         device=device
