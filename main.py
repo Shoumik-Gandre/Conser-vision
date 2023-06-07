@@ -63,7 +63,7 @@ def main(args: Namespace) -> None:
                 case TransferTechnique.BASE | TransferTechnique.L2_SP:
                     predict_baseline(
                         model_path=args.model_path,
-                        features_csv=args.features_csv,
+                        features_csv=args.features_csv_path,
                         images_dir=args.image_dir,
                         prediction_path=args.predictions,
                         architecture=args.architecture,
