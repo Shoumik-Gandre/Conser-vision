@@ -60,7 +60,7 @@ def main(args: Namespace) -> None:
 
         case 'predict':
             match args.transfer:
-                case 'baseline' | 'l2sp':
+                case TransferTechnique.BASE | TransferTechnique.L2_SP:
                     predict_baseline(
                         model_path=args.model_path,
                         features_csv=args.features_csv,
