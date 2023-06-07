@@ -4,15 +4,18 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from dataset import ImagesDataset
 from baseline.trainer import TrainerArgs, BaselineTrainer
-from baseline.model import get_baseline_model
 import torch
+
+from enumerations import Architectures
+from models import get_model
 
 
 def train_baseline(
         features_csv: str,
         labels_csv: str,
         images_dir: str,
-        model_dir: str,
+        model_path: str,
+        model_arch: Architectures,
         epochs: int,
         batch_size: int,
 ) -> None:
@@ -29,10 +32,10 @@ def train_baseline(
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    train_dataset = ImagesDataset(x_train, y_train)
-    eval_dataset = ImagesDataset(x_eval, y_eval)
-    training_args = TrainerArgs(epochs=epochs, batch_size=batch_size, output_dir=model_dir)
-    model = get_baseline_model()
+    model, transforms = get_model(model_arch)
+    train_dataset = ImagesDataset(x_train, y_train, transforms)
+    eval_dataset = ImagesDataset(x_eval, y_eval, transforms)
+    training_args = TrainerArgs(epochs=epochs, batch_size=batch_size, output_dir=model_path)
 
     for name, param in model.named_parameters():
         if name.split('.')[0] != 'fc':

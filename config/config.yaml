@@ -1,0 +1,5 @@
+device: 'cuda'
+seed: 42
+dataset:
+  name: conservision
+  path: /datasets/imagenet
