@@ -59,7 +59,7 @@ def main(args: Namespace) -> None:
             print(args)
 
         case 'predict':
-            match args.solution:
+            match args.transfer:
                 case 'baseline' | 'l2sp':
                     predict_baseline(
                         model_path=args.model_path,
@@ -147,7 +147,7 @@ def handle_args() -> Namespace:
                                 choices=list(enumerations.TransferTechnique),
                                 type=enumerations.TransferTechnique,
                                 dest='transfer',
-                                # required=True,
+                                required=True,
                                 help='transfer learning strategy')
     predict_parser.add_argument('--batch-size',
                                 type=int,
