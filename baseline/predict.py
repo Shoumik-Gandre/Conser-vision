@@ -6,21 +6,29 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from dataset import ImagesDataset
-from baseline.model import load_baseline_model
 import torch
 
+from enumerations import Architectures
 from mixins.baseline import BasicPredictStepMixin
+from models import load_model
 
 
-def predict_baseline(model_path: str, features_csv: str, images_dir: str, prediction_path: str,
-                     batch_size: int, device: torch.device) -> None:
+def predict_baseline(
+        model_path: str,
+        features_csv: str,
+        images_dir: str,
+        prediction_path: str,
+        architecture: Architectures,
+        batch_size: int,
+        device: torch.device
+) -> None:
     features = pd.read_csv(features_csv, index_col="id")
     features['filepath'] = features['filepath'].apply(lambda path: pathlib.Path(images_dir) / str(path))
 
     x = features.filepath.to_frame()
 
-    dataset = ImagesDataset(x)
-    model = load_baseline_model(model_path, device)
+    model, transforms = load_model(model_path, architecture, device)
+    dataset = ImagesDataset(x, transforms)
     dataloader = DataLoader(dataset, batch_size=batch_size)
 
     preds_collector = []

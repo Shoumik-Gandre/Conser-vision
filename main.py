@@ -59,10 +59,6 @@ def main(args: Namespace) -> None:
             print(args)
 
         case 'predict':
-            assert hasattr(args, 'test_data_csv')
-            assert hasattr(args, 'test_images_dir')
-            assert hasattr(args, 'prediction_path')
-            assert hasattr(args, 'model_path')
             match args.solution:
                 case 'baseline' | 'l2sp':
                     predict_baseline(
@@ -70,6 +66,7 @@ def main(args: Namespace) -> None:
                         features_csv=args.features_csv,
                         images_dir=args.image_dir,
                         prediction_path=args.predictions,
+                        architecture=args.architecture,
                         batch_size=args.batch_size,
                         device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
                     )
@@ -117,6 +114,11 @@ def handle_args() -> Namespace:
                               dest='batch_size',
                               required=True
                               )
+    train_parser.add_argument('--checkpoint',
+                              action='store_true',
+                              dest='checkpoint',
+                              help='this is a flag, if this is enabled, then we load the model path first as checkpoint'
+                              )
 
     # Predict mode
     predict_parser = subparser.add_parser('predict', help='predict mode')
@@ -145,7 +147,7 @@ def handle_args() -> Namespace:
                                 choices=list(enumerations.TransferTechnique),
                                 type=enumerations.TransferTechnique,
                                 dest='transfer',
-                                required=True,
+                                # required=True,
                                 help='transfer learning strategy')
     predict_parser.add_argument('--batch-size',
                                 type=int,

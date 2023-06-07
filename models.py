@@ -72,3 +72,23 @@ def get_model(architecture: Architectures) -> Tuple[torch.nn.Module, torchvision
 
         case Architectures.EFFICIENT_NET:
             return _get_efficient_net_model()
+
+
+def load_model(
+        model_path: str,
+        architecture: Architectures,
+        device: torch.device
+) -> Tuple[torch.nn.Module, torchvision.transforms.Compose]:
+    """returns Model, Transforms"""
+    transforms = None
+    match architecture:
+        case Architectures.RESNET50:
+            transforms = models.ResNet50_Weights.DEFAULT.transforms()
+
+        case Architectures.RESNET152:
+            transforms = models.ResNet152_Weights.DEFAULT.transforms()
+
+        case Architectures.EFFICIENT_NET:
+            transforms = models.EfficientNet_V2_L_Weights.DEFAULT.transforms()
+
+    return torch.load(model_path, map_location=device), transforms
