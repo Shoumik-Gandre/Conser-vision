@@ -28,7 +28,7 @@ def predict_baseline(
     x = features.filepath.to_frame()
 
     model, transforms = load_model(model_path, architecture, device)
-    dataset = ImagesDataset(x, transforms)
+    dataset = ImagesDataset(x, transforms=transforms)
     dataloader = DataLoader(dataset, batch_size=batch_size)
 
     preds_collector = []
