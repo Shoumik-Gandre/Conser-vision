@@ -32,6 +32,11 @@ def main(args: Namespace) -> None:
                     with open(args.hyperparams, 'r') as file:
                         hyperparams_data = yaml.safe_load(file)
                     hyperparams = BaseHyperparams(**hyperparams_data)
+                    try:
+                        if args.batch_size:
+                            hyperparams.batch_size = args.batch_size
+                        if args.num_epochs:
+                            hyperparams.num_epochs = args.num_epochs
                     print(hyperparams)
                     train_baseline(
                         features_csv=args.features_csv_path,
@@ -109,12 +114,10 @@ def handle_args() -> Namespace:
     train_parser.add_argument('--num-epochs',
                               type=int,
                               dest='num_epochs',
-                              required=True
                               )
     train_parser.add_argument('--batch-size',
                               type=int,
                               dest='batch_size',
-                              required=True
                               )
     train_parser.add_argument('--checkpoint',
                               action='store_true',
