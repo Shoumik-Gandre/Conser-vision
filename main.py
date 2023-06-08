@@ -29,7 +29,9 @@ def main(args: Namespace) -> None:
         case 'train':
             match args.transfer:
                 case TransferTechnique.BASE:
-                    hyperparams = BaseHyperparams.load(args.hyperparams)
+                    with open(args.hyperparams, 'r') as file:
+                        hyperparams_data = yaml.safe_load(file)
+                    hyperparams = BaseHyperparams(**hyperparams_data)
                     try:
                         if args.batch_size:
                             hyperparams.batch_size = args.batch_size
