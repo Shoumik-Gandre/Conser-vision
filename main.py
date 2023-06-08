@@ -8,11 +8,11 @@ import torch
 
 import enumerations
 from baseline import train_baseline
-from baseline.hyperparams import BaselineHyperparams
+from baseline.hyperparams import BaseHyperparams
 from baseline.predict import predict_baseline
 from enumerations import TransferTechnique
-from l2sp.train import train_l2sp
 from torch.backends import cudnn
+import yaml
 
 
 def set_seeds(seed):
@@ -29,6 +29,10 @@ def main(args: Namespace) -> None:
         case 'train':
             match args.transfer:
                 case TransferTechnique.BASE:
+                    with open(args.hyperparams, 'r') as file:
+                        hyperparams_data = yaml.safe_load(file)
+                    hyperparams = BaseHyperparams(**hyperparams_data)
+                    print(hyperparams)
                     train_baseline(
                         features_csv=args.features_csv_path,
                         labels_csv=args.labels_csv_path,
@@ -118,6 +122,10 @@ def handle_args() -> Namespace:
                               action='store_true',
                               dest='checkpoint',
                               help='this is a flag, if this is enabled, then we load the model path first as checkpoint'
+                              )
+    train_parser.add_argument('--hyperparams',
+                              dest='hyperparams',
+                              required=True
                               )
 
     # Predict mode

@@ -62,25 +62,6 @@ class L2SPTrainer(BasicEvalStepMixin):
         train_dataloader = DataLoader(train_dataset, batch_size=train_args.batch_size)
         eval_dataloader = DataLoader(eval_dataset, batch_size=train_args.batch_size)
         self.model.to(device=self.device)
-        # self.pretrained_model.to(device=self.device)
-
-        # def requires_grad_false(param: torch.nn.Parameter) -> torch.nn.Parameter:
-        #     param.requires_grad = False
-        #     return param
-        #
-        # starting_params = {
-        #     name: requires_grad_false(param)
-        #     for name, param in self.pretrained_model.named_parameters()
-        #     if (
-        #             name.split('.')[0] != 'fc'  # It should not be a classifier
-        #             and name.split('.')[-1] != 'bias'  # It should not be a bias
-        #             and param.requires_grad  # It should be updatable
-        #     )
-        # }
-        #
-        # sp_regularize = LSquareStartingPointRegularization(
-        #     starting_parameters=starting_params,
-        #     coefficient=1e-2, device=self.device)
 
         for epoch in range(train_args.epochs):
             print(f"Epoch [{epoch + 1}/{train_args.epochs}]")

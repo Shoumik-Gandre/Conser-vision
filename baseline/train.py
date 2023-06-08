@@ -2,8 +2,10 @@ import pathlib
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
+
+from baseline.hyperparams import BaseHyperparams
 from dataset import ImagesDataset
-from baseline.trainer import TrainerArgs, BaselineTrainer
+from baseline.trainer import BaseTrainer
 import torch
 
 from enumerations import Architectures
@@ -16,12 +18,10 @@ def train_baseline(
         images_dir: str,
         model_path: str,
         model_arch: Architectures,
-        epochs: int,
-        batch_size: int,
+        hyperparams: BaseHyperparams
 ) -> None:
     train_features = pd.read_csv(features_csv, index_col="id")
-    train_features['filepath'] = train_features['filepath'].apply(
-        lambda path: pathlib.Path(images_dir) / str(path))
+    train_features['filepath'] = train_features['filepath'].apply(lambda path: pathlib.Path(images_dir) / str(path))
     train_labels = pd.read_csv(labels_csv, index_col="id")
 
     y = train_labels
@@ -32,35 +32,24 @@ def train_baseline(
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    model, transforms = get_model(model_arch)
-    train_dataset = ImagesDataset(x_train, y_train, transforms)
-    eval_dataset = ImagesDataset(x_eval, y_eval, transforms)
-    training_args = TrainerArgs(epochs=epochs, batch_size=batch_size, output_dir=model_path)
+    model_wrapper = get_model(model_arch)
+    train_dataset = ImagesDataset(x_train, y_train, model_wrapper.transforms)
+    eval_dataset = ImagesDataset(x_eval, y_eval, model_wrapper.transforms)
 
-    for name, param in model.named_parameters():
-        if name.split('.')[0] != 'fc':
-            param.requires_grad = False
-
-    trainer = BaselineTrainer(
-        model=model,
+    trainer = BaseTrainer(
+        model=model_wrapper.model,
         optimizer=torch.optim.AdamW(
-            [
-                # {
-                #     'params': [param for name, param in model.named_parameters() if name.split('.')[0] != 'fc'],
-                #     'lr': 1e-4,
-                # },
-                {
-                    'params': [
-                        param for name, param in model.named_parameters()
-                        if name.split('.')[0] == 'fc' and param.requires_grad
-                    ],
-                    # 'lr': 1e-3,
-                },
-            ],
-            # lr=1e-3,
-            weight_decay=1e-3
+            model_wrapper.model.parameters(),
+            lr=hyperparams.learning_rate,
+            weight_decay=hyperparams.weight_decay,
         ),
         criterion=torch.nn.CrossEntropyLoss(),
         device=device
     )
-    trainer.train(train_args=training_args, train_dataset=train_dataset, eval_dataset=eval_dataset)
+    trainer.train(
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
+        epochs=hyperparams.num_epochs,
+        batch_size=hyperparams.batch_size,
+        checkpoint_dir=model_path
+    )

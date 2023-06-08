@@ -1,5 +1,6 @@
 device: 'cuda'
 seed: 42
+pin-memory: True
 dataset:
   name: conservision
   path: /datasets/imagenet

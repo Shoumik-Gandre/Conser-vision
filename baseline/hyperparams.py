@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class BaselineHyperparams:
+class BaseHyperparams:
     learning_rate: float
     weight_decay: float
     batch_size: int
