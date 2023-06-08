@@ -37,6 +37,8 @@ def main(args: Namespace) -> None:
                             hyperparams.batch_size = args.batch_size
                         if args.num_epochs:
                             hyperparams.num_epochs = args.num_epochs
+                    except:
+                        pass
                     print(hyperparams)
                     train_baseline(
                         features_csv=args.features_csv_path,
