@@ -36,6 +36,7 @@ def l2sp_train(
     device = torch.device(device_str)
 
     model_wrapper = get_model(model_arch)
+    model_wrapper.model.to(device)
     transforms = model_wrapper.transforms
     pretrained_model = get_model(model_arch)
     pretrained_model.model.to(device)
