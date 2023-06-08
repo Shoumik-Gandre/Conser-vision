@@ -38,6 +38,7 @@ def l2sp_train(
     model_wrapper = get_model(model_arch)
     transforms = model_wrapper.transforms
     pretrained_model = get_model(model_arch)
+    pretrained_model.model.to(device)
     train_dataset = ImagesDataset(x_train, y_train, transforms)
     eval_dataset = ImagesDataset(x_eval, y_eval, transforms)
 
@@ -68,7 +69,6 @@ def l2sp_train(
                 and param.requires_grad  # It should be updatable
         )
     }
-    print(starting_params)
 
     sp_regularizer = LSquareStartingPointRegularization(
         starting_parameters=starting_params,
