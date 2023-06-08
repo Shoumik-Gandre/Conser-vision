@@ -39,8 +39,6 @@ def main(args: Namespace) -> None:
                         images_dir=args.image_dir,
                         model_path=args.model_path,
                         model_arch=args.architecture,
-                        epochs=args.num_epochs,
-                        batch_size=args.batch_size,
                     )
                 case TransferTechnique.FREEZE:
                     print('train freeze')
