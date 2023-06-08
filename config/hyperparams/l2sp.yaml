@@ -1,0 +1,6 @@
+learning_rate: 0.01
+weight_decay_pretrain: 0.02
+weight_decay: 0.002
+momentum: 0.9
+batch_size: 32
+num_epochs: 10

@@ -1,18 +1,16 @@
-import enum
 from argparse import ArgumentParser, Namespace
-from dataclasses import dataclass, field
-from typing import List, Any
 
 import numpy as np
 import torch
+import yaml
+from torch.backends import cudnn
 
 import enumerations
+import l2sp
 from baseline import train_baseline
 from baseline.hyperparams import BaseHyperparams
 from baseline.predict import predict_baseline
 from enumerations import TransferTechnique
-from torch.backends import cudnn
-import yaml
 
 
 def set_seeds(seed):
@@ -51,15 +49,25 @@ def main(args: Namespace) -> None:
                 case TransferTechnique.FREEZE:
                     print('train freeze')
                 case TransferTechnique.L2_SP:
-                    print('train l2sp')
-                    # train_l2sp(
-                    #     features_csv=args.train_data_csv,
-                    #     labels_csv=args.train_labels_csv,
-                    #     images_dir=args.train_images_dir,
-                    #     model_dir=args.model_path,
-                    #     epochs=args.num_epochs,
-                    #     batch_size=args.batch_size,
-                    # )
+                    with open(args.hyperparams, 'r') as file:
+                        hyperparams_data = yaml.safe_load(file)
+                    hyperparams = l2sp.L2SPHyperparams(**hyperparams_data)
+                    try:
+                        if args.batch_size:
+                            hyperparams.batch_size = args.batch_size
+                        if args.num_epochs:
+                            hyperparams.num_epochs = args.num_epochs
+                    except:
+                        pass
+                    print(hyperparams)
+                    l2sp.l2sp_train(
+                        features_csv=args.features_csv_path,
+                        labels_csv=args.labels_csv_path,
+                        images_dir=args.image_dir,
+                        model_path=args.model_path,
+                        model_arch=args.architecture,
+                        hyperparams=hyperparams
+                    )
                 case TransferTechnique.BSS:
                     print('train bss')
                 case TransferTechnique.DELTA:

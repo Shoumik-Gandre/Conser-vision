@@ -1,80 +1,93 @@
-from dataclasses import dataclass
-from typing import Mapping, Iterable
+"""The train function for l2sp transfer is defined here.
+The save checkpoint function and load checkpoint function for l2sp is defined here
+"""
+import pathlib
+from typing import Tuple
 
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from l2sp.hyperparams import L2SPHyperparams
 from l2sp.l2sp_regularizer import LSquareStartingPointRegularization
-from mixins.baseline import BasicEvalStepMixin
 
 
-@dataclass
-class TrainerArgs:
-    epochs: int
-    batch_size: int
-    model_dir: str
+def save_checkpoint(
+        checkpoint_path: pathlib.Path,
+        model: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        epoch: int,
+        loss: float
+):
+    torch.save({
+        'epoch': epoch,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'loss': loss,
+    }, checkpoint_path)
 
 
-@dataclass
-class LSquareStartingPointHyperparameters:
-    pretrain_coefficient: float
-    param_names: Iterable[str]
+def load_checkpoint(
+        checkpoint_path: pathlib.Path,
+        model: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+) -> Tuple[int, float]:
+    checkpoint = torch.load(checkpoint_path)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    epoch = checkpoint['epoch']
+    loss = checkpoint['loss']
+    return epoch, loss
 
 
-def l2sp_train_step(
+def train(
         model: torch.nn.Module,
         criterion: torch.nn.Module,
-        optimizer: torch.optim.Optimizer,
-        dataloader: DataLoader[Mapping[str, torch.Tensor]],
         sp_regularizer: LSquareStartingPointRegularization,
+        optimizer: torch.optim.Optimizer,
+        hyperparams: L2SPHyperparams,
+        train_dataloader: DataLoader,
+        eval_dataloader: DataLoader | None = None,
         device: torch.device = torch.device('cpu'),
-) -> float:
-    model.train(True)
-    running_loss = 0.0
-    for batch in tqdm(dataloader, desc="training"):
-        x = batch['image'].to(device)
-        y = batch['label'].to(device)
+        save_checkpoint_per_epoch: int = 1,
+        checkpoint_path: str = ''
+):
+    for epoch in range(1, hyperparams.num_epochs + 1):
+        print(f'epoch [{epoch}/{hyperparams.num_epochs}]')
 
-        a = model(x)
-        loss = criterion(a, y)
+        # Train step
+        model.train(True)
+        running_loss = 0.0
+        for batch in tqdm(train_dataloader, desc="training"):
+            x = batch['image'].to(device)
+            y = batch['label'].to(device)
 
-        with torch.no_grad():
-            running_loss += loss.item()
+            a = model(x)
+            loss = criterion(a, y)
 
-        loss += sp_regularizer(model)
+            with torch.no_grad():
+                running_loss += loss.item()
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-    return running_loss / len(dataloader)
+            loss += sp_regularizer(model)
 
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+        print(f"train loss = {running_loss / len(train_dataloader)}")
 
-@dataclass
-class L2SPTrainer(BasicEvalStepMixin):
-    model: torch.nn.Module
-    sp_regularizer: LSquareStartingPointRegularization
-    optimizer: torch.optim.Optimizer
-    criterion: torch.nn.CrossEntropyLoss
-    device: torch.device
+        # Eval Step
+        model.eval()
+        running_loss = 0.0
+        for batch in tqdm(eval_dataloader, desc="evaluation"):
+            x = batch['image'].to(device)
+            y = batch['label'].to(device)
 
-    def train(self, train_args: TrainerArgs, train_dataset: Dataset, eval_dataset: Dataset):
-        train_dataloader = DataLoader(train_dataset, batch_size=train_args.batch_size)
-        eval_dataloader = DataLoader(eval_dataset, batch_size=train_args.batch_size)
-        self.model.to(device=self.device)
+            with torch.no_grad():
+                a = model(x)
+                loss = criterion(a, y)
+                running_loss += loss.item()
 
-        for epoch in range(train_args.epochs):
-            print(f"Epoch [{epoch + 1}/{train_args.epochs}]")
-            train_loss = l2sp_train_step(
-                model=self.model,
-                criterion=self.criterion,
-                optimizer=self.optimizer,
-                dataloader=train_dataloader,
-                sp_regularizer=self.sp_regularizer,
-                device=self.device,
-            )
-            print(train_loss)
-            eval_loss = self.eval_step(eval_dataloader)
-            print(eval_loss)
+        print(f"eval loss = {running_loss / len(eval_dataloader)}")
 
-        torch.save(self.model, train_args.model_dir)
+        if (epoch - 1) % save_checkpoint_per_epoch == 0:
+            save_checkpoint(pathlib.Path(checkpoint_path), model, optimizer, epoch, running_loss)
