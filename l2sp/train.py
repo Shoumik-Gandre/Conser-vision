@@ -63,7 +63,7 @@ def l2sp_train(
         name: requires_grad_false(param)
         for name, param in pretrained_model.model.named_parameters()
         if (
-                param != pretrained_model.classifier()
+                param != pretrained_model.classifier
                 and name.split('.')[-1] != 'bias'  # It should not be a bias
                 and param.requires_grad  # It should be updatable
         )
@@ -82,13 +82,13 @@ def l2sp_train(
             {
                 'params': [
                     param for name, param in model_wrapper.model.named_parameters()
-                    if param != model_wrapper.classifier()
+                    if param != model_wrapper.classifier
                 ],
             },
             {
                 'params': [
                     param for name, param in model_wrapper.model.named_parameters()
-                    if param == model_wrapper.classifier()
+                    if param == model_wrapper.classifier
                 ],
                 'weight_decay': hyperparams.weight_decay,
             },
