@@ -44,6 +44,7 @@ def main(args: Namespace) -> None:
                         images_dir=args.image_dir,
                         model_path=args.model_path,
                         model_arch=args.architecture,
+                        hyperparams=hyperparams
                     )
                 case TransferTechnique.FREEZE:
                     print('train freeze')
