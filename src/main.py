@@ -5,11 +5,12 @@ import torch
 import yaml
 from torch.backends import cudnn
 
-from src import enumerations, l2sp
-from src.baseline import train_baseline
-from src.baseline.hyperparams import BaseHyperparams
-from src.predict import predict_animal
-from src.enumerations import TransferTechnique
+import enumerations
+import l2sp
+from .baseline import train_baseline
+from .baseline.hyperparams import BaseHyperparams
+from .predict import predict_animal
+from .enumerations import TransferTechnique
 
 
 def set_seeds(seed):
