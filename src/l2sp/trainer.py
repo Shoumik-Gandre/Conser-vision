@@ -8,8 +8,8 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from src.l2sp.hyperparams import L2SPHyperparams
-from src.l2sp.l2sp_regularizer import LSquareStartingPointRegularization
+from ..l2sp.hyperparams import L2SPHyperparams
+from ..l2sp.l2sp_regularizer import LSquareStartingPointRegularization
 
 
 def save_checkpoint(

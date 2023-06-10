@@ -4,7 +4,7 @@ from typing import Tuple
 import torch
 import torchvision
 
-from src.enumerations import Architectures
+from enumerations import Architectures
 
 
 class ModelWrapper(typing.Protocol):

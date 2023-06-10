@@ -2,15 +2,15 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
-from src.dataset import ImagesDataset
-from src.enumerations import Architectures
-from src.l2sp.hyperparams import L2SPHyperparams
-from src.l2sp.trainer import LSquareStartingPointRegularization
+from ..dataset import ImagesDataset
+from ..enumerations import Architectures
+from ..l2sp.hyperparams import L2SPHyperparams
+from ..l2sp.trainer import LSquareStartingPointRegularization
 import torch
 
-from src.models import get_model
-from src.l2sp.trainer import train
-from src.training_utils import load_training_data
+from ..models import get_model
+from ..l2sp.trainer import train
+from ..training_utils import load_training_data
 from sklearn.utils.class_weight import compute_class_weight
 
 

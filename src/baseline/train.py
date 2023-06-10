@@ -3,13 +3,13 @@ import pathlib
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from src.baseline.hyperparams import BaseHyperparams
-from src.dataset import ImagesDataset
-from src.baseline.trainer import BaseTrainer
+from ..baseline.hyperparams import BaseHyperparams
+from ..dataset import ImagesDataset
+from ..baseline.trainer import BaseTrainer
 import torch
 
-from src.enumerations import Architectures
-from src.models import get_model
+from ..enumerations import Architectures
+from ..models import get_model
 
 
 def train_baseline(

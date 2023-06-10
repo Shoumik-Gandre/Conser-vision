@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from mixins.baseline import BasicTrainStepMixin, BasicEvalStepMixin
+from ..mixins.baseline import BasicTrainStepMixin, BasicEvalStepMixin
 
 
 @dataclass

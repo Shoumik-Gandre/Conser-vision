@@ -8,10 +8,10 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from mixins.baseline import BasicPredictStepMixin
-from src.dataset import ImagesDataset
-from src.enumerations import Architectures
-from src.models import load_model
+from .mixins.baseline import BasicPredictStepMixin
+from .dataset import ImagesDataset
+from .enumerations import Architectures
+from .models import load_model
 
 
 def predict_animal(
