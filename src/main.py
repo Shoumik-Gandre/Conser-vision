@@ -5,12 +5,11 @@ import torch
 import yaml
 from torch.backends import cudnn
 
-import enumerations
-import l2sp
-from baseline import train_baseline
-from baseline.hyperparams import BaseHyperparams
-from baseline.predict import predict_baseline
-from enumerations import TransferTechnique
+from src import enumerations, l2sp
+from src.baseline import train_baseline
+from src.baseline.hyperparams import BaseHyperparams
+from src.predict import predict_animal
+from src.enumerations import TransferTechnique
 
 
 def set_seeds(seed):
@@ -22,6 +21,7 @@ def set_seeds(seed):
 
 
 def main(args: Namespace) -> None:
+    print(args)
     set_seeds(42)
     match args.mode:
         case 'train':
@@ -30,14 +30,11 @@ def main(args: Namespace) -> None:
                     with open(args.hyperparams, 'r') as file:
                         hyperparams_data = yaml.safe_load(file)
                     hyperparams = BaseHyperparams(**hyperparams_data)
-                    try:
-                        if args.batch_size:
-                            hyperparams.batch_size = args.batch_size
-                        if args.num_epochs:
-                            hyperparams.num_epochs = args.num_epochs
-                    except:
-                        pass
-                    print(hyperparams)
+                    if hasattr(args, 'batch_size'):
+                        hyperparams.batch_size = args.batch_size
+                    if hasattr(args, 'num_epochs'):
+                        hyperparams.num_epochs = args.num_epochs
+
                     train_baseline(
                         features_csv=args.features_csv_path,
                         labels_csv=args.labels_csv_path,
@@ -48,18 +45,19 @@ def main(args: Namespace) -> None:
                     )
                 case TransferTechnique.FREEZE:
                     print('train freeze')
+
                 case TransferTechnique.L2_SP:
                     with open(args.hyperparams, 'r') as file:
                         hyperparams_data = yaml.safe_load(file)
                     hyperparams = l2sp.L2SPHyperparams(**hyperparams_data)
-                    try:
-                        if args.batch_size:
-                            hyperparams.batch_size = args.batch_size
-                        if args.num_epochs:
-                            hyperparams.num_epochs = args.num_epochs
-                    except:
-                        pass
+
+                    if hasattr(args, 'batch_size'):
+                        hyperparams.batch_size = args.batch_size
+                    if hasattr(args, 'num_epochs'):
+                        hyperparams.num_epochs = args.num_epochs
+
                     print(hyperparams)
+
                     l2sp.l2sp_train(
                         features_csv=args.features_csv_path,
                         labels_csv=args.labels_csv_path,
@@ -70,16 +68,18 @@ def main(args: Namespace) -> None:
                     )
                 case TransferTechnique.BSS:
                     print('train bss')
+
                 case TransferTechnique.DELTA:
                     print('train delta')
+
                 case TransferTechnique.CO_TUNING:
                     print('train co-tuning')
-            print(args)
 
         case 'predict':
+
             match args.transfer:
                 case TransferTechnique.BASE | TransferTechnique.L2_SP:
-                    predict_baseline(
+                    predict_animal(
                         model_path=args.model_path,
                         features_csv=args.features_csv_path,
                         images_dir=args.image_dir,

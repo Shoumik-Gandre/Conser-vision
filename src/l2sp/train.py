@@ -1,17 +1,17 @@
-import pathlib
-
-import pandas as pd
+import numpy as np
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
-from dataset import ImagesDataset
-from enumerations import Architectures
-from l2sp.hyperparams import L2SPHyperparams
-from l2sp.trainer import LSquareStartingPointRegularization
+from src.dataset import ImagesDataset
+from src.enumerations import Architectures
+from src.l2sp.hyperparams import L2SPHyperparams
+from src.l2sp.trainer import LSquareStartingPointRegularization
 import torch
 
-from models import get_model
-from l2sp.trainer import train
+from src.models import get_model
+from src.l2sp.trainer import train
+from src.training_utils import load_training_data
+from sklearn.utils.class_weight import compute_class_weight
 
 
 def l2sp_train(
@@ -22,15 +22,9 @@ def l2sp_train(
         model_arch: Architectures,
         hyperparams: L2SPHyperparams,
 ) -> None:
-    features = pd.read_csv(features_csv, index_col="id")
-    features['filepath'] = features['filepath'].apply(lambda path: pathlib.Path(images_dir) / str(path))
-    train_labels = pd.read_csv(labels_csv, index_col="id")
-
-    y = train_labels
-    x = features.loc[y.index].filepath.to_frame()
-
-    # note that we are casting the species labels to an indicator/dummy matrix
+    x, y = load_training_data(features_csv, labels_csv, images_dir)
     x_train, x_eval, y_train, y_eval = train_test_split(x, y, stratify=y, test_size=0.25, random_state=42)
+    class_weights = compute_class_weight('balanced', classes=np.unique(y_train), y=y_train)
 
     device_str = "cuda" if torch.cuda.is_available() else "cpu"
     device = torch.device(device_str)
@@ -77,7 +71,7 @@ def l2sp_train(
         device=device
     )
 
-    criterion = torch.nn.CrossEntropyLoss()
+    criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
     optimizer = torch.optim.SGD(
         [
             {

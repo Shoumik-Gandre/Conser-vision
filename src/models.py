@@ -4,7 +4,7 @@ from typing import Tuple
 import torch
 import torchvision
 
-from enumerations import Architectures
+from src.enumerations import Architectures
 
 
 class ModelWrapper(typing.Protocol):
@@ -18,6 +18,9 @@ class ModelWrapper(typing.Protocol):
     @property
     def model(self) -> torch.nn.Module:
         return ...
+
+    def pretrained(self) -> torch.nn.Module:
+        ...
 
 
 class ResNet50Wrapper(torch.nn.Module):
@@ -36,6 +39,9 @@ class ResNet50Wrapper(torch.nn.Module):
     def transforms(self):
         return torchvision.models.ResNet50_Weights.DEFAULT.transforms()
 
+    def pretrained(self):
+        return torchvision.models.resnet50(weights=torchvision.models.ResNet50_Weights.DEFAULT)
+
 
 class ResNet152Wrapper(torch.nn.Module):
     def __init__(self):
@@ -51,6 +57,9 @@ class ResNet152Wrapper(torch.nn.Module):
     @property
     def transforms(self):
         return torchvision.models.ResNet152_Weights.DEFAULT.transforms()
+
+    def pretrained(self) -> torch.nn.Module:
+        return torchvision.models.resnet152(weights=torchvision.models.ResNet152_Weights.DEFAULT)
 
 
 class EfficientNetV2LWrapper(torch.nn.Module):
@@ -89,14 +98,25 @@ def load_model(
 ) -> Tuple[torch.nn.Module, torchvision.transforms.Compose]:
     """returns Model, Transforms"""
     transforms = None
+    model_dict = torch.load(model_path, map_location=device)
     match architecture:
         case Architectures.RESNET50:
+            model = torchvision.models.resnet50()
+            model.fc = torch.nn.Linear(2048, 8)
+            model.load_state_dict(model_dict)
             transforms = torchvision.models.ResNet50_Weights.DEFAULT.transforms()
 
         case Architectures.RESNET152:
+            model = torchvision.models.resnet152()
+            model.fc = torch.nn.Linear(2048, 8)
+            model.load_state_dict(model_dict)
             transforms = torchvision.models.ResNet152_Weights.DEFAULT.transforms()
 
         case Architectures.EFFICIENT_NET:
-            transforms = torchvision.models.EfficientNet_V2_L_Weights.DEFAULT.transforms()
+            raise NotImplementedError()
+            # model = torchvision.models.efficientnet_v2_l()
+            # model.fc = torch.nn.Linear(2048, 8)
+            # model.load_state_dict(model_dict)
+            # transforms = torchvision.models.EfficientNet_V2_L_Weights.DEFAULT.transforms()
 
-    return torch.load(model_path, map_location=device), transforms
+    return transforms
